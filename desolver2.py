@@ -61,6 +61,7 @@ def desolve(equation,variable,order):
     eqog=equation    
     ylist=[]
     t=float(input("Enter initial time: ")) #initial time value
+    ti=t
     tf=float(input("Enter final time: ")) #final time
     t=t+dd
     for i in range(order):
@@ -69,7 +70,7 @@ def desolve(equation,variable,order):
         use=eval(use)
         ylist.append(use)
     
-    r=6000# 1600 takes my computer ~1 min to solve
+    r=2500# 1600 takes my computer ~1 min to solve
     recm=1*(tf-t)/r
     #ask user acuracy or runs
     
@@ -90,11 +91,13 @@ def desolve(equation,variable,order):
     eq=equation
     
     #dt=.001
+    r=(tf-ti)/dt
     runs=abs(r)
-    print("Required amount of iterations:",r)
+    print("Iterations:",r)
     
     ti=time.time()
     for i in range(abs(round(runs))):
+        
         if i%200==0:
             print(round(100*i/runs),"percent")
          
@@ -102,9 +105,17 @@ def desolve(equation,variable,order):
             for j in range(order): #replace y0 y1 with ylist values
                 eq=eval("eq.replace(\""+var+str(j)+"\",str(ylist[j]))")
 
-        
-            eq=eq.replace("t",str(t))
+              
+            
+            #find spot of t
             #print(eq)
+            for j in range(len(eq)):
+                #print(eq[j])
+                if eq[j]=="t" and eq[j+1]!="a":
+                    eq=eq[:j]+"("+str(t)+")"+eq[j+1:]
+                    
+            #print(eq)
+
             eq=eq.replace("dt",str(dt))
             ylist.append(rsolve(eq,hi))#solve for highest order
 
@@ -129,7 +140,13 @@ def desolve(equation,variable,order):
                 eqn=eval("eqn.replace(\""+var+str(j)+"\",str(ylist[j]))")
                 #print(eqn)
             
-            eq=eqn.replace("t",str(t))
+            #find spot of t
+            for j in range(len(eq)):
+                #print(eq[j])
+                if eq[j]=="t" and eq[j+1]!="a":
+                    eq=eq.replace("t",str(t))
+
+            
             eq=eq.replace("dt",str(dt))
             tog=t
             #print(eq)
@@ -147,7 +164,7 @@ def desolve(equation,variable,order):
         tlist.append(t)
         t=t+dt
         graph.append(ylist[0])
-        
+
     print("estimate at t =",tf,"-->",graph[len(graph)-1])
     plt.plot(tlist,graph)
     plt.show()
@@ -158,4 +175,4 @@ def desolve(equation,variable,order):
 #use y0 for y; y1 for y'; y2 for y''; y3 for y'''
 #or use x2, x3, x4, x0
 #desolve("equation","dependent variable", highest order d)
-a=desolve("y1**(sin(y2))=cos(t)+3","y",2)
+a=desolve("t*atan(y2)=sin(y2)-y2+y1","y",2)
