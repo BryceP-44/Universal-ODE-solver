@@ -21,7 +21,7 @@ def linspace(start,end,N):
             cont=0
     return x
 
-def rsolve(equation,var):
+def rsolve(equation,var,it):
     eq=equation.split("=")
     left=str(eq[0])
     right=str(eq[1])
@@ -38,6 +38,7 @@ def rsolve(equation,var):
                 y.append(abs(eval(expr)))
             except Exception as z:
                 print("error:",z)
+                print("this is your broken equation. idiot. --> ",equation)
                 z=1
             
         minn=10**200
@@ -61,15 +62,16 @@ def desolve(equation,variable,order):
     eqog=equation    
     ylist=[]
     t=float(input("Enter initial time: ")) #initial time value
+    ti=t
     tf=float(input("Enter final time: ")) #final time
-    t=t+dd
+    t=t+dd #just in case its something like using t=0 for 1/t
     for i in range(order):
         string="Enter "+var+str(i)+" value: "
         use="float(input(string))"
         use=eval(use)
-        ylist.append(use)
+        ylist.append(use) #ylist is [y0,y1,y2], planning to solve for y3
     
-    r=6000# 1600 takes my computer ~1 min to solve
+    r=2500# 1600 takes my computer ~1 min to solve
     recm=1*(tf-t)/r
     #ask user acuracy or runs
     
@@ -90,27 +92,49 @@ def desolve(equation,variable,order):
     eq=equation
     
     #dt=.001
+    r=(tf-ti)/dt
     runs=abs(r)
-    print("Required amount of iterations:",r)
+    print("Iterations:",r)
     
     ti=time.time()
+    it=0
+    #start loop
     for i in range(abs(round(runs))):
+        it+=1 #add every iteration
+
+        #printing percents
         if i%200==0:
             print(round(100*i/runs),"percent")
-         
+
+         #first run: 
         if i==0:
             for j in range(order): #replace y0 y1 with ylist values
                 eq=eval("eq.replace(\""+var+str(j)+"\",str(ylist[j]))")
 
-        
-            eq=eq.replace("t",str(t))
+              
+            
+            #find spot of t
             #print(eq)
-            eq=eq.replace("dt",str(dt))
-            ylist.append(rsolve(eq,hi))#solve for highest order
+            #if it's "tan(..." then leave alone
+            #else, (ex. ty*5) fixes that to (t)y*5
+            for j in range(len(eq)):
+                #print(eq[j])
+                if eq[j]=="t" and eq[j+1]!="a":
+                    eq=eq[:j]+"("+str(t)+")"+eq[j+1:]
+                    
+            #print(eq)
+
+            #put "(.0076)" in for "dt"
+            eq=eq.replace("dt","("+str(dt)+")")
+
+            #solve for y3 or y2 for the first time
+            yappend=rsolve(eq,hi,it)#solve for highest order
+            
+            ylist.append(yappend) #puts y3 at the end of y0,y1,y2
 
             ylistog=[] #create delayed ylist variable
             for j in range(len(ylist)):
-                ylistog.append(ylist[j])
+                ylistog.append(ylist[j])#copy and keep for later
 
             tog=t
 
@@ -119,17 +143,29 @@ def desolve(equation,variable,order):
             print("Initial runtime estimate:",round(mins,3),"minutes")
 
 
-           
+        #after one run  
         if i>0:
             eqn=eqog
             for j in range(order):
-                #replace og ylist value with updated value
                 #print("eqn.replace(\""+var+str(j)+"\",str(ylist[j]))")
                 #print(eval("eqn.replace(\""+var+str(j)+"\",str(ylist[j]))"))
+                
+                #replace og ylist value with updated value
+                #eqn.replace("y0",1.4) if 1.4 is calculated y0 value
                 eqn=eval("eqn.replace(\""+var+str(j)+"\",str(ylist[j]))")
-                #print(eqn)
+                #good, eqn updates correctly
+
+            eq=eqn
             
-            eq=eqn.replace("t",str(t))
+            #find spot of t
+            #if it's "tan(..." then leave alone
+            #else, replace "t" with 1.2004 or whatever time it is
+            for j in range(len(eq)):
+                #print(eq[j])
+                if eq[j]=="t" and eq[j+1]!="a":
+                    eq=eq.replace("t",str(t))
+
+            
             eq=eq.replace("dt",str(dt))
             tog=t
             #print(eq)
@@ -138,18 +174,23 @@ def desolve(equation,variable,order):
                 ylistog[j]=ylist[j]
 
             #print(eq)
-            ylist[len(ylist)-1]=rsolve(eq,hi) #solve for highest order
+            ylist[len(ylist)-1]=rsolve(eq,hi,it) #solve for highest order
+            #print(eq)
             
-
-        for j in range(order): #v+=a*dt
-            ylist[order-j-1]=ylist[order-j-1]+ylist[order-j]*dt #error
+        
+        #integration
+        for j in range(order): #v+=a*dt integration
+            #print(ylist[order-j-1],ylist[order-j])
+            ylist[order-j-1]=ylist[order-j-1]+ylist[order-j]*dt #error, a is not being solved for
 
         tlist.append(t)
         t=t+dt
         graph.append(ylist[0])
-        
+        #print(ylist)
+
     print("estimate at t =",tf,"-->",graph[len(graph)-1])
     plt.plot(tlist,graph)
+    #plt.ylim([-100,100])
     plt.show()
     return graph
     
@@ -158,4 +199,7 @@ def desolve(equation,variable,order):
 #use y0 for y; y1 for y'; y2 for y''; y3 for y'''
 #or use x2, x3, x4, x0
 #desolve("equation","dependent variable", highest order d)
-a=desolve("y1**(sin(y2))=cos(t)+3","y",2)
+#a=desolve("t*atan(y2)=sin(y2)-y2+y1","y",2)
+desolve("-((y2)**((sin(y2))**5))/(t**4)=y0","y",2)
+#make a order=getorder(equation)
+#desolve("y0+y1=-y2","y",2)
